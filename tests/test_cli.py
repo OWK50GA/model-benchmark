@@ -22,11 +22,11 @@ def test_image_checks_fail_for_example_files(capsys, tmp_path):
     assert len(json.loads(capsys.readouterr().out)["errors"]) == 3
 
 
-@pytest.mark.parametrize("command", [["neighbors"], ["run", "--model", "dinov3", "--image", "missing.jpg", "--task", "embedding"]])
-def test_future_commands_never_claim_success(command, capsys):
-    assert main(command) == 2
+@pytest.mark.parametrize("command", [["neighbors", "missing-run", "--query", "missing"], ["run", "--model", "dinov3", "--image", "missing.jpg", "--task", "embedding"]])
+def test_missing_embedding_inputs_never_claim_success(command, capsys):
+    assert main(command) == 1
     captured = capsys.readouterr()
-    assert not captured.out and "Phase" in captured.err
+    assert not captured.out and "error" in captured.err
 
 
 def test_capability_mismatch(capsys):
@@ -57,4 +57,4 @@ def test_fresh_process_imports_no_ml_runtimes():
     code = "from fashionista_vision_lab.cli import main; import sys; main(['models','list']); assert not ({'torch','transformers','google.genai','numpy','sklearn'} & set(sys.modules))"
     result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    assert {model["name"] for model in json.loads(result.stdout) if model["implemented"]} == {"gemini", "florence"}
+    assert {model["name"] for model in json.loads(result.stdout) if model["implemented"]} == {"gemini", "florence", "fashionclip", "dinov3"}
