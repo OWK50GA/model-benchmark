@@ -11,8 +11,11 @@ from .schemas.dataset import Dataset
 
 def load_dataset(path: Path) -> Dataset:
     """JSON contains one Dataset. JSONL starts with metadata, then image records."""
-    text = path.read_text(encoding="utf-8")
-    if path.suffix.lower() != ".jsonl":
+    return parse_dataset(path.read_text(encoding="utf-8"), path.suffix)
+
+
+def parse_dataset(text: str, suffix: str = ".json") -> Dataset:
+    if suffix.lower() != ".jsonl":
         return Dataset.model_validate_json(text)
     records = []
     for line_number, line in enumerate(text.splitlines(), 1):

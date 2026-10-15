@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from .schemas.common import Identifier, Schema
 
@@ -16,6 +16,22 @@ class ModelConfig(Schema):
     revision: Identifier | None = None
     device: Literal["auto", "cpu", "cuda", "mps"] = "auto"
     credential_env: str | None = Field(default=None, pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")
+    allow_downloads: bool = False
+    trust_remote_code: bool = False
+    max_output_tokens: int = Field(default=2048, gt=0, strict=True)
+    timeout_seconds: float = Field(default=120, gt=0)
+    temperature: float = Field(default=0, ge=0, le=2)
+    input_cost_per_million: float | None = Field(default=None, ge=0)
+    output_cost_per_million: float | None = Field(default=None, ge=0)
+    cost_currency: Identifier | None = None
+    cost_basis: Identifier | None = None
+
+    @model_validator(mode="after")
+    def complete_pricing(self) -> "ModelConfig":
+        pricing = (self.input_cost_per_million, self.output_cost_per_million, self.cost_currency, self.cost_basis)
+        if any(v is not None for v in pricing) and not all(v is not None for v in pricing):
+            raise ValueError("pricing requires both token rates, currency, and basis")
+        return self
 
     def require_credential(self) -> str:
         if self.credential_env is None:
