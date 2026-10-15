@@ -27,6 +27,7 @@ class ModelAdapter:
 
     def __init__(self, config: ModelConfig):
         self.config = config
+        self.seed = 42
 
     def require_capability(self, capability: Capability) -> None:
         if capability not in self.capabilities:
@@ -44,3 +45,9 @@ class ModelAdapter:
 
     def generate_embedding(self, image: Image.Image, region: BoundingBox | None = None) -> InferenceResult:
         return self._unimplemented("embedding")
+
+    def caption(self, image: Image.Image, region: BoundingBox | None = None) -> InferenceResult:
+        return self._unimplemented("caption")
+
+    def close(self) -> None:
+        """Release runtime resources after a run. Lightweight adapters need no cleanup."""

@@ -22,9 +22,11 @@ class ModelDescriptor:
 
 REGISTRY = {
     "gemini": ModelDescriptor("gemini", ("detection", "attributes"), 2,
-                              "Configured API model ID required; capabilities depend on the selected model."),
-    "florence": ModelDescriptor("florence", ("detection",), 2,
-                                "Native captioning/localization; structured garment attributes are not assumed."),
+                              "Configured API model ID required; capabilities depend on the selected model.",
+                              "fashionista_vision_lab.models.gemini:GeminiAdapter"),
+    "florence": ModelDescriptor("florence", ("detection", "caption"), 2,
+                                "Native captioning/localization; structured garment attributes are not assumed.",
+                                "fashionista_vision_lab.models.florence:FlorenceAdapter"),
     "fashionclip": ModelDescriptor("fashionclip", ("embedding",), 3,
                                    "Fashion similarity embeddings; physical identity must be evaluated."),
     "dinov3": ModelDescriptor("dinov3", ("embedding",), 3,
@@ -42,7 +44,7 @@ def get_descriptor(name: str) -> ModelDescriptor:
 def create_adapter(name: str, config: ModelConfig) -> ModelAdapter:
     descriptor = get_descriptor(name)
     if descriptor.factory_path is None:
-        raise AdapterNotImplementedError(f"{name} adapter is planned for Phase {descriptor.phase}; Phase 1 provides contracts only")
+        raise AdapterNotImplementedError(f"{name} adapter is planned for Phase {descriptor.phase}")
     module_name, class_name = descriptor.factory_path.split(":", 1)
     adapter = getattr(import_module(module_name), class_name)(config)
     if not isinstance(adapter, ModelAdapter):
