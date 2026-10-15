@@ -1,15 +1,17 @@
 # Fashionista Vision Lab
 
-A standalone Python laboratory for evaluating garment detection, visible
-attributes, and physical garment identity. **Phase 1 foundations only.** There
-are no implemented model adapters, benchmark metrics, or model performance
-claims yet. Phase 2 requires review of this foundation.
+A standalone laboratory for testing garment detection, visible attributes, and
+physical garment identity. **Phase 2 is implemented:** Gemini detection/attributes,
+Florence detection/captioning, detection and attribute benchmarks, saved outputs,
+and comparison reports. Embeddings and identity evaluation remain Phase 3.
+
+This is an evaluation lab, not the Fashionista production backend. No model
+performance is claimed without real labeled data.
 
 ## Setup
 
-Python 3.11+ is required. Python 3.12 is a practical starting point for later ML
-dependencies; support for newer Python releases must be checked when adapters
-are added. Phase 1 needs only Pydantic and Pillow at runtime, plus pytest for tests.
+Python 3.11+ is required; development tests run on Python 3.12.3 / Linux.
+Dataset tools, scoring, and offline tests require no model weights or API access.
 
 Ubuntu / WSL Ubuntu, from the repository root:
 
@@ -18,24 +20,23 @@ sudo apt-get install python3-venv
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m pytest
+python -m pytest -q
 ```
 
-Windows PowerShell, with Python 3.12 installed:
+Windows PowerShell (activation is optional):
 
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe run.py models list
 ```
 
-Activation on Windows is optional; explicit interpreter paths avoid PowerShell
-activation-policy issues. The commands below assume the virtual environment is
-active. `python run.py ...`, `python -m fashionista_vision_lab ...`, and
-`vision-lab ...` provide the same CLI after installation.
+The installed `vision-lab` command, `python run.py`, and
+`python -m fashionista_vision_lab` expose the same CLI. Commands below assume the
+virtual environment is active. Windows instructions have not been executed here.
 
-## Working commands
+## Dataset and configuration tools
 
 ```bash
 vision-lab models list
@@ -47,73 +48,65 @@ vision-lab schema result
 vision-lab schema config
 ```
 
-`dataset validate` and `dataset inspect` currently return the same JSON validation
-and summary payload. A successful check confirms structural validity, not the
-truth of annotations. The example references nonexistent photographs on purpose.
-To check your real image files as well:
+The committed example contains invented annotations and references nonexistent
+photos. It demonstrates the format; it is not benchmark ground truth. Validation
+and inspection currently return the same JSON summary. Add `--check-images` to
+verify actual files, EXIF-oriented dimensions, and image-root containment:
 
 ```bash
 vision-lab dataset validate datasets/annotations/my-dataset.json \
   --check-images --image-root datasets/images
 ```
 
-Exit codes: `0` success; `1` invalid input or failed image checks; `2` CLI usage
-errors or functionality deferred to later phases. Errors go to stderr, except
-image-check findings, which are included in the dataset JSON payload.
+Read [dataset preparation](docs/datasets.md) for labeling guidance. Keep physical
+identity separate from visual resemblance. Unknown attributes must remain null.
 
-`run --model gemini --image photo.jpg --task attributes` has a reserved CLI shape
-and exits with an explicit Phase 2 message. `benchmark`, `compare`, `report`, and
-`neighbors` are reserved commands that also exit nonzero. They do not execute
-models or produce reports. Their detailed options will be designed in the phase
-that implements them.
+## Run models and benchmarks
 
-## Repository layout
+Install only the optional runtime needed:
 
-```text
-config/default.json                  Reproducible configuration template
-datasets/annotations/example.json    Clearly synthetic format examples
-datasets/images/                     Local/private image root
-src/fashionista_vision_lab/
-  schemas/                           Annotation and normalized output contracts
-  models/base.py                     Capability-specific adapter methods
-  models/registry.py                 Model descriptors and lazy factory loading
-  config.py                          Configuration, paths, credential lookup, hash
-  datasets.py                        JSON/JSONL I/O, image checks, inspection
-  cli.py                             CLI entry point
-docs/                                Dataset guide, architecture, compatibility
-results/                             Reserved local result directory
-tests/                               Offline foundation tests
-run.py                               Repository CLI convenience entry point
-pyproject.toml                       Package metadata and dependency declarations
-requirements.txt                     Editable installation including tests
+```bash
+python -m pip install -e '.[gemini]'
+# Set models.gemini.model_id in config/default.json, then export GEMINI_API_KEY.
+vision-lab run --model gemini --task attributes --image datasets/images/shirt.jpg
+vision-lab benchmark --model gemini --task attributes --dataset datasets/annotations/my-dataset.json
+vision-lab compare --models gemini florence --task detection --dataset datasets/annotations/my-dataset.json
+vision-lab report results/RUN_ID --output results/my-report.md
 ```
 
-The `src/` layout keeps imports tied to the installed package and avoids generic
-top-level package names such as `models`. Benchmark and evaluation modules will
-be added inside the package when their implementation starts.
+Florence requires its own optional dependencies and a pinned checkpoint revision;
+see [Phase 2 setup and scoring](docs/phase-2.md) before running the comparison.
+Florence supports native detection/localization and captions, not structured
+attribute extraction. Comparisons reject unsupported model/task combinations.
+
+Each run saves `manifest.json`, `normalized.jsonl`, `raw.jsonl`, `metrics.json`,
+and `report.md` in a unique directory. Comparisons also save `comparison.md` in
+one of those directories. Single-image runs produce predictions, not accuracy
+scores. Benchmark failures stay in eligible score denominators. Reports identify
+missing usage/cost coverage and excluded data.
+
+Benchmarks require reviewed annotations by default. `--allow-unverified` is for
+smoke tests only and marks the report. The example dataset cannot run inference
+without corresponding image files. `neighbors`, FashionCLIP and DINOv3 remain
+Phase 3; no combined Phase 4 pipeline is implemented.
+
+Exit codes: `0` success, `1` invalid input or any recorded run/image failures,
+`2` CLI usage errors or deferred functionality. Run failures still save artifacts.
+An interrupted run can have partial JSONL files and no final metrics/report.
 
 ## Configuration and credentials
 
-Paths in `config/default.json` resolve relative to that file, independent of the
-working directory. Explicit CLI dataset/image-root arguments resolve from the
-working directory. `config show` validates configuration, prints effective
-defaults and resolved paths, and provides a SHA-256 fingerprint of canonical
-configuration JSON. It does not validate remote model access or read credentials.
+Configuration paths are relative to the configuration file. Explicit CLI paths
+are relative to the current working directory. `config show` validates and prints
+defaults, resolved paths, and a SHA-256 configuration fingerprint; it never reads
+credentials or checks remote model access.
 
-The seed is recorded for future runners; Phase 1 does not initialize random ML
-runtimes. The hash is a configuration identity, not a full experiment identity:
-future results also need dataset/image hashes, model revisions, preprocessing,
-prompts, runtime versions, and hardware. Dependencies have compatible bounds,
-not an experiment lockfile; capture exact versions when running actual benchmarks.
-
-Gemini's model ID deliberately remains `null`: supply an API model available to
-your account before its adapter is implemented. Local checkpoint IDs are
-documented candidates, and revisions remain unpinned until integration testing.
-The `models` mapping permits new adapter names without changing configuration
-schemas; execution must resolve a registered adapter.
+Gemini's model ID deliberately defaults to null. Set it to a model available to
+your account. Florence requires a reviewed full checkpoint commit hash; see the
+Phase 2 guide. Local downloads default to disabled.
 
 `.env.example` documents variable names; `.env` is **not automatically loaded**.
-Export credentials from your shell or use your own secret manager:
+Export credentials in your shell or use your own secret manager:
 
 ```bash
 export GEMINI_API_KEY='your-key'
@@ -125,25 +118,53 @@ $env:GEMINI_API_KEY = 'your-key'
 $env:HF_TOKEN = 'your-token'
 ```
 
-No credentials are needed for Phase 1. Keep actual values out of configuration.
-Private images, custom annotation files, `.env` files, and results are ignored by
-default; only the synthetic annotation example is included. Review explicitly
-added files before committing.
+Credential values do not belong in config JSON. Private images, custom annotation
+files, `.env` files, and results are ignored by default. Review files before
+explicitly adding them to Git.
 
-## CPU and GPU expectations
+The configured seed is passed to Gemini and used when initializing Florence's
+PyTorch runtime. This does not guarantee deterministic API/GPU behavior. Run
+manifests record input hashes, code hashes, runtime versions and preprocessing;
+normalized records include device/model metadata. Dependency ranges are not a
+fully locked experiment environment.
 
-All current functionality runs on CPU with no PyTorch, CUDA, model weights, or
-API calls. `device` accepts `auto`, `cpu`, `cuda`, or `mps`, but is configuration
-only until model adapters implement device selection and availability checks.
-No claim of tested GPU support is made.
+## CPU / GPU
 
-For later phases, install a PyTorch build appropriate to the machine and driver
-using the [official PyTorch installation instructions](https://pytorch.org/get-started/locally/).
-For NVIDIA acceleration under WSL, verify the Windows driver and GPU visibility
-inside WSL before installing CUDA-enabled packages. Florence-2-large CPU
-generation may be slow; actual feasibility and memory usage must be measured.
-Smaller DINOv3 variants are initial candidates, not a measured recommendation.
-Do not download weights to run the foundation tests.
+Gemini runs on provider hardware; local device selection does not apply.
+Florence `auto` selects CUDA if available, otherwise CPU. Explicit unavailable
+GPU requests return a saved error. CPU uses float32 and CUDA uses float16. MPS
+is selectable but untested. CPU latency/memory and actual GPU execution have not
+been measured; Florence-2-large generation may be slow on CPU.
 
-Read [dataset preparation](docs/datasets.md), [architecture](docs/architecture.md),
-and [model compatibility notes](docs/model-compatibility.md) before extending the lab.
+Install PyTorch for your hardware using its
+[official instructions](https://pytorch.org/get-started/locally/). Under WSL,
+verify NVIDIA driver/GPU visibility inside WSL before installing a CUDA build.
+No weights are needed for the offline test suite.
+
+## Layout
+
+```text
+config/default.json                  Configuration template
+ datasets/annotations/example.json   Synthetic annotation example
+ datasets/images/                    Local/private images
+src/fashionista_vision_lab/
+  schemas/                           Dataset and normalized output contracts
+  models/                            Independent lazy adapters and registry
+  benchmarks/                        Pure detection and attribute scoring
+  config.py                          Configuration, paths, credentials, hash
+  datasets.py                        JSON/JSONL I/O and image checks
+  runner.py                          Eligibility, orchestration and input hashes
+  artifacts.py                       Run manifests and raw/normalized files
+  reporting.py                       Saved-run Markdown reports
+  cli.py                             CLI
+results/                             Local run outputs
+ tests/                              Offline tests and SDK transport fixtures
+ docs/                               Guides and implementation reports
+```
+
+The `src/` layout avoids generic import names such as `models`. Model code does
+not depend on benchmark scoring. Runtime extras are imported only when used.
+
+See [architecture](docs/architecture.md), [model compatibility](docs/model-compatibility.md),
+and [Phase 2 usage](docs/phase-2.md). The [Phase 1 report](docs/phase-1-report.md)
+is a historical record, not the current feature list.

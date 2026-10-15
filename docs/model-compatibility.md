@@ -1,5 +1,15 @@
 # Model compatibility research — 2026-10-14
 
+Phase 2 update (2026-10-15): Gemini and Florence adapters are implemented. See
+[Phase 2 setup](phase-2.md) for the chosen dependency lane and required config.
+Gemini SDK 1.75.0 request serialization is tested with a mock HTTP transport.
+Florence uses the original Microsoft custom-code route with Transformers 4.49.x,
+not the converted checkpoints in the newer
+[native Florence documentation](https://huggingface.co/docs/transformers/model_doc/florence2).
+The Florence runtime lane still needs a real checkpoint loading test. No weights
+were downloaded and no live model inference was run. The notes below retain the
+original primary-source research; documentation availability is not runtime proof.
+
 These are documentation checks against primary sources, not successful loading
 or inference tests. No weights were downloaded. Recheck the exact checkpoint,
 revision, SDK versions, and account access during each adapter implementation.
