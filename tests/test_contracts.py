@@ -58,9 +58,11 @@ def test_capabilities_fail_explicitly_without_inference():
     adapter = ModelAdapter(ModelConfig())
     with pytest.raises(UnsupportedCapabilityError):
         adapter.detect_garments(Image.new("RGB", (2, 2)))
-    for name in REGISTRY:
+    for name in ("fashionclip", "dinov3"):
         with pytest.raises(AdapterNotImplementedError, match="Phase"):
             create_adapter(name, ModelConfig())
+    assert create_adapter("gemini", ModelConfig()).name == "gemini"
+    assert create_adapter("florence", ModelConfig()).name == "florence"
     with pytest.raises(ValueError, match="unknown model"):
         create_adapter("unknown", ModelConfig())
 
