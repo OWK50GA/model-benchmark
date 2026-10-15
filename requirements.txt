@@ -1,0 +1,2 @@
+# Install the package and its Phase 1 test dependencies.
+-e .[dev]

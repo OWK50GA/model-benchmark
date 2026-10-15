@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.0",
+  "dataset_id": "synthetic-format-example",
+  "description": "Invented schema examples only. Image files do not exist. Not verified ground truth.",
+  "synthetic": true,
+  "images": [
+    {
+      "image_id": "example-front", "file_path": "example/front.jpg",
+      "width": 640, "height": 800, "context": "product", "split": "test", "garments_complete": true,
+      "garments": [
+        {
+          "annotation_id": "a-front", "identity_id": "shirt-a", "appearance_group": "similar-blue-shirts",
+          "category": "shirt", "viewpoint": "front", "verification": "example",
+          "bbox": {"x_min": 80, "y_min": 100, "x_max": 560, "y_max": 700},
+          "attributes": {"subcategory": "button_down", "colors": ["blue"], "patterns": ["solid"], "visible_material_characteristics": ["matte"], "silhouette": "straight", "distinctive_details": ["chest pocket"]}
+        }
+      ]
+    },
+    {
+      "image_id": "example-worn-back", "file_path": "example/worn-back.jpg",
+      "width": 640, "height": 800, "context": "full_outfit", "split": "test", "garments_complete": true,
+      "garments": [
+        {
+          "annotation_id": "a-back", "identity_id": "shirt-a", "appearance_group": "similar-blue-shirts",
+          "category": "shirt", "viewpoint": "back", "verification": "example",
+          "bbox": {"x_min": 160, "y_min": 80, "x_max": 480, "y_max": 430},
+          "attributes": {"colors": ["blue"], "patterns": ["solid"], "distinctive_details": null}
+        },
+        {
+          "annotation_id": "trousers-worn", "identity_id": "trousers-a", "category": "trousers",
+          "viewpoint": "back", "verification": "example", "bbox": null,
+          "attributes": {"colors": ["black"]}
+        }
+      ]
+    },
+    {
+      "image_id": "example-different-shirt", "file_path": "example/different-shirt.jpg",
+      "width": 640, "height": 800, "context": "flat_lay", "split": "test", "garments_complete": true,
+      "garments": [
+        {
+          "annotation_id": "b-front", "identity_id": "shirt-b", "appearance_group": "similar-blue-shirts",
+          "category": "shirt", "viewpoint": "front", "verification": "example",
+          "bbox": {"x_min": 60, "y_min": 120, "x_max": 580, "y_max": 720},
+          "attributes": {"colors": ["blue"], "patterns": ["solid"], "distinctive_details": []},
+          "notes": "Different invented physical garment from shirt-a despite similar appearance."
+        }
+      ]
+    }
+  ]
+}
