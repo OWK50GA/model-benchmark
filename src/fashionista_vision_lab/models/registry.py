@@ -28,9 +28,11 @@ REGISTRY = {
                                 "Native captioning/localization; structured garment attributes are not assumed.",
                                 "fashionista_vision_lab.models.florence:FlorenceAdapter"),
     "fashionclip": ModelDescriptor("fashionclip", ("embedding",), 3,
-                                   "Fashion similarity embeddings; physical identity must be evaluated."),
+                                   "Fashion similarity embeddings; physical identity must be evaluated.",
+                                   "fashionista_vision_lab.models.fashionclip:FashionCLIPAdapter"),
     "dinov3": ModelDescriptor("dinov3", ("embedding",), 3,
-                              "Visual embeddings; checkpoint access and license acceptance may be required."),
+                              "Visual embeddings; checkpoint access and license acceptance may be required.",
+                              "fashionista_vision_lab.models.dinov3:DINOv3Adapter"),
 }
 
 
