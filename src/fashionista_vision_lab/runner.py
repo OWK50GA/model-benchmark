@@ -188,7 +188,7 @@ def run_image(image_path, model, task, config, output_root, region=None, adapter
     if model not in config.models:
         raise ValueError(f"missing model configuration: {model}")
     if task == "detection" and region is not None:
-        raise ValueError("--region is for attributes/caption, not whole-image detection")
+        raise ValueError("--region is for attributes/caption/embedding, not whole-image detection")
     data = image_path.read_bytes()
     image = load_image(data)
     adapter = adapter_factory(model, config.models[model])

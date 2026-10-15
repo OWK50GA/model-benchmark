@@ -19,7 +19,7 @@ def json_digest(value) -> str:
 
 def environment():
     packages = {}
-    for name in ("fashionista-vision-lab", "pydantic", "Pillow", "google-genai", "torch", "transformers", "timm", "einops"):
+    for name in ("fashionista-vision-lab", "pydantic", "Pillow", "google-genai", "torch", "transformers", "timm", "einops", "numpy", "scikit-learn"):
         try:
             packages[name] = version(name)
         except PackageNotFoundError:

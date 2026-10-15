@@ -51,7 +51,7 @@ def parser() -> argparse.ArgumentParser:
             action.add_argument("--model", required=True)
         else:
             action.add_argument("--models", nargs="+", required=True)
-        action.add_argument("--task", choices=("detection", "attributes"), required=True)
+        action.add_argument("--task", choices=("detection", "attributes", "identity"), required=True)
         action.add_argument("--config", type=Path, default=Path("config/default.json"))
         action.add_argument("--dataset", type=Path)
         action.add_argument("--image-root", type=Path)
@@ -60,10 +60,19 @@ def parser() -> argparse.ArgumentParser:
         action.add_argument("--iou-threshold", type=float, default=0.5)
         action.add_argument("--allow-unverified", action="store_true", help="smoke tests only; label report as unverified")
         action.add_argument("--category-aliases", type=Path, help="JSON mapping of labels to canonical category names")
+        action.add_argument("--match-threshold", type=float, help="required for identity: cosine cutoff chosen on validation data")
+        action.add_argument("--split", choices=("train", "validation", "test", "unspecified"), default="test")
+        action.add_argument("--cache-dir", type=Path, help="embedding cache; defaults to OUTPUT_ROOT/.embedding-cache")
+        action.add_argument("--no-cache", action="store_true")
     report = commands.add_parser("report", help="render completed saved runs without inference")
     report.add_argument("runs", nargs="+", type=Path)
     report.add_argument("--output", type=Path, help="write Markdown to a new file (never overwrite)")
-    commands.add_parser("neighbors", help="reserved for Phase 3")
+    nearest = commands.add_parser("neighbors", help="inspect a saved identity run without loading models")
+    nearest.add_argument("run", type=Path)
+    nearest.add_argument("--query", required=True, help="garment annotation/sample ID")
+    nearest.add_argument("--k", type=int, default=5)
+    nearest.add_argument("--cross-view", action="store_true")
+    nearest.add_argument("--show-vector", action="store_true")
     return root
 
 
@@ -108,12 +117,22 @@ def main(argv: list[str] | None = None) -> int:
             dataset_bytes = dataset_path.read_bytes()
             from .datasets import parse_dataset
             dataset = parse_dataset(dataset_bytes.decode("utf-8"), dataset_path.suffix)
-            protocol = BenchmarkProtocol(detection_mode=args.detection_mode, iou_threshold=args.iou_threshold,
-                allow_unverified=args.allow_unverified,
-                category_aliases=json.loads(args.category_aliases.read_text()) if args.category_aliases else {})
-            paths = benchmark(dataset, dataset_bytes, args.image_root or resolve_config_path(args.config, config.image_root),
-                [args.model] if args.command == "benchmark" else args.models, args.task, config,
-                args.output_root or resolve_config_path(args.config, config.results_dir), protocol)
+            output_root = args.output_root or resolve_config_path(args.config, config.results_dir)
+            image_root = args.image_root or resolve_config_path(args.config, config.image_root)
+            names = [args.model] if args.command == "benchmark" else args.models
+            if args.task == "identity":
+                from .benchmarks.identity import IdentityProtocol
+                from .identity_runner import identity_benchmark
+                if args.match_threshold is None:
+                    raise ValueError("Identity benchmarks require --match-threshold selected on separate validation data; no universal cutoff is assumed.")
+                protocol = IdentityProtocol(threshold=args.match_threshold, split=args.split, allow_unverified=args.allow_unverified)
+                paths = identity_benchmark(dataset, dataset_bytes, image_root, names, config, output_root, protocol,
+                    None if args.no_cache else (args.cache_dir or output_root / ".embedding-cache"))
+            else:
+                protocol = BenchmarkProtocol(detection_mode=args.detection_mode, iou_threshold=args.iou_threshold,
+                    allow_unverified=args.allow_unverified,
+                    category_aliases=json.loads(args.category_aliases.read_text()) if args.category_aliases else {})
+                paths = benchmark(dataset, dataset_bytes, image_root, names, args.task, config, output_root, protocol)
             if args.command == "compare":
                 comparison_path = paths[0] / "comparison.md"
                 with comparison_path.open("x", encoding="utf-8") as stream:
@@ -131,6 +150,18 @@ def main(argv: list[str] | None = None) -> int:
                 emit({"report": str(args.output)})
             else:
                 print(report)
+        elif args.command == "neighbors":
+            from .identity_runner import read_observations
+            from .benchmarks.identity import neighbors
+            import math
+            observations = read_observations(args.run)
+            matches = neighbors(observations, args.query, args.k, args.cross_view)
+            query = next(o for o in observations if o.sample_id == args.query)
+            details = {"sample_id": query.sample_id, "dimensions": len(query.embedding.vector),
+                       "embedding_space": query.embedding.embedding_space, "norm": math.hypot(*query.embedding.vector)}
+            if args.show_vector:
+                details["vector"] = query.embedding.vector
+            emit({"query": details, "neighbors": matches, "note": "Cosine similarity is not a probability or proof of physical identity."})
         else:
             raise AdapterNotImplementedError(f"{args.command} is planned for Phase 3")
         return 0

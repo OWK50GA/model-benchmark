@@ -55,6 +55,7 @@ class InferenceMetadata(Schema):
     device: Identifier
     hardware: dict[str, str] = Field(default_factory=dict)
     latency_seconds: NonNegativeFloat
+    cache_hit: bool = False
     input_tokens: int | None = Field(default=None, ge=0, strict=True)
     output_tokens: int | None = Field(default=None, ge=0, strict=True)
     thinking_tokens: int | None = Field(default=None, ge=0, strict=True)

@@ -42,6 +42,23 @@ def render_report(paths: list[Path]) -> str:
                 lines.append("| " + field + " | " + " | ".join(shown(counts[k]) for k in (
                     "accuracy", "eligible", "missing", "incorrect", "unsupported_values", "unscored_prediction")) + " |")
             lines.append("")
+        elif manifest["task"] == "identity":
+            lines.extend(["Ground-truth garment crops; leave-one-image-out retrieval. Self-images and exact decoded duplicates are excluded.", "",
+                f"Successful embeddings: {metrics['successful_embeddings']}; cache hits: {metrics['cache_hits']}. Cache-hit latency measures lookup, not model inference.", "",
+                "| Retrieval | Eligible queries | Failed queries | No positive gallery | Recall@1 | Recall@5 |",
+                "| --- | --- | --- | --- | --- | --- |"])
+            for mode, row in metrics["retrieval"].items():
+                lines.append("| " + mode + " | " + " | ".join(shown(row[key]) for key in (
+                    "eligible_queries", "failed_queries", "queries_without_positive", "recall_at_1", "recall_at_5")) + " |")
+            match = metrics["matching"]
+            lines.extend(["", f"User-supplied cosine threshold: {match['threshold']}. Similarity is not proof of physical identity.", "",
+                f"Same-pair recall (failures included): {shown(match['same_pair_recall_including_failures'])}.", "",
+                f"False-positive rate on scored different-item pairs: {shown(match['false_positive_rate'])}; "
+                f"hard-negative false-positive rate: {shown(match['hard_negative_false_positive_rate'])}.", "",
+                f"Same pairs: {match['same_pairs']} (failed: {match['failed_same_pairs']}); "
+                f"different pairs: {match['different_pairs']} (failed: {match['failed_different_pairs']}).", "",
+                f"Scored hard negatives: {match['scored_hard_negatives']}/{match['hard_negatives']}.", "",
+                "Pairs with failed embeddings are unscored, never counted as true negatives. Inspect pairs.jsonl and retrieval.jsonl for evidence.", ""])
         if metrics.get("failure_codes"):
             lines.extend(["Failure codes: `" + json.dumps(metrics["failure_codes"], sort_keys=True) + "`", ""])
         lines.extend(["Exclusions and exact configuration are in manifest.json; per-sample errors and scores are in normalized.jsonl.", ""])
