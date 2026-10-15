@@ -1,5 +1,14 @@
 # Model compatibility research — 2026-10-14
 
+Phase 3 update: FashionCLIP and DINOv3 ViT adapters now use native Transformers
+>=4.56,<5, separately from the original Florence environment. Both require pinned
+Hub revisions and use float32 normalized image features. DINOv3 uses the final CLS
+token, not register-token pooling. Loading/generation contracts are tested with
+runtime doubles; actual checkpoint loading and GPU operation are still untested.
+See [Phase 3 setup](phase-3.md), the
+[official DINOv3 support baseline](https://github.com/facebookresearch/dinov3), and
+[CLIP image feature API](https://huggingface.co/docs/transformers/v4.56.2/en/model_doc/clip).
+
 Phase 2 update (2026-10-15): Gemini and Florence adapters are implemented. See
 [Phase 2 setup](phase-2.md) for the chosen dependency lane and required config.
 Gemini SDK 1.75.0 request serialization is tested with a mock HTTP transport.

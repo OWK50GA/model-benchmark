@@ -27,8 +27,8 @@ stores configuration; SDK/model loading should happen on first inference. Regist
 a `module:ClassName` factory in `models/registry.py`. `create_adapter` imports
 only that factory. The registry is a small explicit mapping, not a plugin framework.
 
-Gemini and Florence have implemented factories. FashionCLIP and DINOv3 remain
-unimplemented Phase 3 descriptors. `planned_capabilities` lists each adapter's
+Gemini, Florence, FashionCLIP and DINOv3 have implemented factories.
+`planned_capabilities` lists each adapter's
 task contract, while `implemented` distinguishes available code from plans.
 Implementation does not imply live model-validation evidence. Florence has a
 separate caption capability; captions are not promoted to structured attributes.
@@ -46,9 +46,9 @@ match the normalized output type. Its output types are:
   a checked unit-normalization claim when `normalized=true`.
 - `CaptionOutput`: native caption text, without claiming structured attributes.
 
-Embedding-space IDs must eventually identify checkpoint/revision, preprocessing,
-pooling, dimensionality, and normalization. Vectors from different spaces must
-not be compared. The foundation validates individual vectors, not retrieval pairs.
+Embedding-space IDs identify checkpoint/revision, preprocessing, pooling,
+dimensionality and normalization. Identity retrieval rejects different spaces or
+dimensions. FashionCLIP uses projected image features; DINOv3 ViT uses CLS features.
 
 Metadata supports model name/ID/revision, device, latency, optional token counts,
 and estimated cost with currency and pricing basis. It does not invent missing
@@ -72,9 +72,11 @@ Schema version changes are explicit; migrations are not implemented yet. All
 reads validate the contract. Detection and attribute benchmarks apply explicit
 eligibility rules for optional boxes, unknown attributes, partial annotations and
 unverified data. Metric denominators and excluded samples are reported. Identity
-eligibility and scoring remain Phase 3.
+evaluation additionally requires known physical IDs, prevents explicit split
+leakage, and excludes self/duplicate images from queries and pairs.
 
 Phase 2 provides Gemini/Florence integration, detection and attribute metrics,
-run artifacts and comparative reporting; see [its guide](phase-2.md). Phase 3 will add embedding adapters,
-caching, retrieval and identity evaluation. Phase 4 requires results from those
+run artifacts and comparative reporting; see [its guide](phase-2.md). Phase 3 adds
+embedding adapters, checked JSON caching, retrieval and identity evaluation; see
+[its guide](phase-3.md). Phase 4 requires results from those
 individual evaluations. No Phase 4 pipeline is implemented here.

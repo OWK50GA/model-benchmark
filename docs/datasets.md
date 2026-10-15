@@ -94,7 +94,7 @@ query itself and near-duplicate captures from trivial retrieval matches.
 
 Identity IDs are dataset-scoped. Cross-dataset comparisons require an explicit ID
 mapping. Avoid tuning matching thresholds on the test set. Record uncertain
-identity separately rather than treating unlabeled garments as negatives. Query/
-gallery construction, threshold selection, verified-data eligibility, and scoring
-are deliberately deferred to Phase 3; the schema does not claim to enforce these
-future benchmark policies.
+identity separately rather than treating unlabeled garments as negatives. Phase 3
+implements explicit query/gallery and verified-data eligibility rules; see
+[identity evaluation](phase-3.md). Threshold selection remains your validation-set
+decision. The dataset schema alone does not establish benchmark eligibility.

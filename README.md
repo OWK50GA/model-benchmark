@@ -1,9 +1,10 @@
 # Fashionista Vision Lab
 
 A standalone laboratory for testing garment detection, visible attributes, and
-physical garment identity. **Phase 2 is implemented:** Gemini detection/attributes,
+physical garment identity. **Phases 1–3 are implemented:** Gemini detection/attributes,
 Florence detection/captioning, detection and attribute benchmarks, saved outputs,
-and comparison reports. Embeddings and identity evaluation remain Phase 3.
+and comparison reports, plus FashionCLIP/DINOv3 embeddings, caching, nearest
+neighbors and physical garment identity evaluation. Phase 4 remains deferred.
 
 This is an evaluation lab, not the Fashionista production backend. No model
 performance is claimed without real labeled data.
@@ -87,8 +88,27 @@ missing usage/cost coverage and excluded data.
 
 Benchmarks require reviewed annotations by default. `--allow-unverified` is for
 smoke tests only and marks the report. The example dataset cannot run inference
-without corresponding image files. `neighbors`, FashionCLIP and DINOv3 remain
-Phase 3; no combined Phase 4 pipeline is implemented.
+without corresponding image files. No combined Phase 4 pipeline is implemented.
+
+## Garment identity
+
+FashionCLIP and DINOv3 use a newer Transformers dependency lane than Florence.
+Set them up in a separate environment using [the Phase 3 guide](docs/phase-3.md).
+The core installation includes NumPy/scikit-learn for offline similarity scoring;
+model runtimes remain optional and lazy.
+
+```bash
+vision-lab run --model fashionclip --task embedding --image datasets/images/shirt.jpg
+# Example threshold only; choose your cutoff on separate validation data.
+vision-lab compare --models fashionclip dinov3 --task identity \
+  --dataset datasets/annotations/my-dataset.json --match-threshold 0.8
+vision-lab neighbors results/RUN_ID --query GARMENT_ANNOTATION_ID --k 5
+```
+
+Identity benchmarks use reviewed physical IDs and garment crops, default to the
+test split, exclude self/duplicate images, and report Recall@1/5, cross-view
+retrieval and same/different matching. Successful embeddings are cached; use
+`--no-cache` for timing comparisons. Cosine similarity does not prove identity.
 
 Exit codes: `0` success, `1` invalid input or any recorded run/image failures,
 `2` CLI usage errors or deferred functionality. Run failures still save artifacts.
@@ -166,5 +186,5 @@ The `src/` layout avoids generic import names such as `models`. Model code does
 not depend on benchmark scoring. Runtime extras are imported only when used.
 
 See [architecture](docs/architecture.md), [model compatibility](docs/model-compatibility.md),
-and [Phase 2 usage](docs/phase-2.md). The [Phase 1 report](docs/phase-1-report.md)
+and [Phase 2 usage](docs/phase-2.md), [Phase 3 usage](docs/phase-3.md). The [Phase 1 report](docs/phase-1-report.md)
 is a historical record, not the current feature list.
