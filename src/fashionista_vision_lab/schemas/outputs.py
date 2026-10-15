@@ -1,4 +1,4 @@
-"""Contracts for future inference adapters; no scores are generated in Phase 1."""
+"""Normalized inference outputs, failures and metadata; scoring lives separately."""
 
 from typing import Literal
 
@@ -7,7 +7,11 @@ from pydantic import Field, JsonValue, model_validator
 from .common import BoundingBox, Identifier, NonNegativeFloat, Probability, Schema
 from .dataset import GarmentAttributes
 
-Capability = Literal["detection", "attributes", "embedding"]
+Capability = Literal["detection", "attributes", "embedding", "caption"]
+
+
+class CaptionOutput(Schema):
+    text: Identifier
 
 
 class Detection(Schema):
@@ -49,9 +53,12 @@ class InferenceMetadata(Schema):
     model_id: Identifier
     model_revision: Identifier | None = None
     device: Identifier
+    hardware: dict[str, str] = Field(default_factory=dict)
     latency_seconds: NonNegativeFloat
     input_tokens: int | None = Field(default=None, ge=0, strict=True)
     output_tokens: int | None = Field(default=None, ge=0, strict=True)
+    thinking_tokens: int | None = Field(default=None, ge=0, strict=True)
+    resolved_model_version: Identifier | None = None
     estimated_cost: NonNegativeFloat | None = None
     cost_currency: Identifier | None = None
     cost_basis: Identifier | None = None
@@ -72,7 +79,7 @@ class InferenceResult(Schema):
     schema_version: Literal["1.0"] = "1.0"
     capability: Capability
     metadata: InferenceMetadata
-    output: DetectionOutput | AttributeOutput | EmbeddingOutput | None = None
+    output: DetectionOutput | AttributeOutput | EmbeddingOutput | CaptionOutput | None = None
     error: InferenceError | None = None
     raw_response: JsonValue = None
 
@@ -80,7 +87,7 @@ class InferenceResult(Schema):
     def valid_outcome(self) -> "InferenceResult":
         if (self.output is None) == (self.error is None):
             raise ValueError("exactly one of output or error is required")
-        expected = {"detection": DetectionOutput, "attributes": AttributeOutput, "embedding": EmbeddingOutput}
+        expected = {"detection": DetectionOutput, "attributes": AttributeOutput, "embedding": EmbeddingOutput, "caption": CaptionOutput}
         if self.output is not None and not isinstance(self.output, expected[self.capability]):
             raise ValueError("output type must match capability")
         return self
